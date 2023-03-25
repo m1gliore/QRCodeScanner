@@ -43,7 +43,7 @@ class MainActivity : AppCompatActivity() {
 
         codeScanner.decodeCallback = DecodeCallback {
             runOnUiThread {
-                Toast.makeText(this, "Scan result: ${it.text}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Результаты сканирования: ${it.text}", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -51,7 +51,7 @@ class MainActivity : AppCompatActivity() {
             runOnUiThread {
                 Toast.makeText(
                     this,
-                    "Camera initialization error: ${it.message}",
+                    "Ошибка инициализации камеры: ${it.message}",
                     Toast.LENGTH_SHORT
                 ).show()
             }
@@ -70,10 +70,10 @@ class MainActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 123) {
             if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Camera permission granted", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Права камеры получены", Toast.LENGTH_SHORT).show()
                 startScanning()
             } else {
-                Toast.makeText(this, "Camera permission denied", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Права камеры отклонены", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -81,13 +81,13 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         if (::codeScanner.isInitialized) {
-            codeScanner?.startPreview()
+            codeScanner.startPreview()
         }
     }
 
     override fun onPause() {
         if (::codeScanner.isInitialized) {
-            codeScanner?.releaseResources()
+            codeScanner.releaseResources()
         }
         super.onPause()
     }
