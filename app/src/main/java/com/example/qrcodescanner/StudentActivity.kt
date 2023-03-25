@@ -1,25 +1,26 @@
 package com.example.qrcodescanner
 
-import android.Manifest.*
+import android.Manifest.permission
 import android.content.pm.PackageManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.budiyev.android.codescanner.AutoFocusMode
-import com.budiyev.android.codescanner.CodeScanner
-import com.budiyev.android.codescanner.CodeScannerView
-import com.budiyev.android.codescanner.DecodeCallback
-import com.budiyev.android.codescanner.ErrorCallback
-import com.budiyev.android.codescanner.ScanMode
+import com.budiyev.android.codescanner.*
+import com.example.qrcodescanner.databinding.ActivityStudentBinding
 
-class MainActivity : AppCompatActivity() {
+class StudentActivity : AppCompatActivity() {
+
+    private lateinit var binding: ActivityStudentBinding
     private lateinit var codeScanner: CodeScanner
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+
+        binding = ActivityStudentBinding.inflate(LayoutInflater.from(this))
+        setContentView(binding.root)
 
         if (ContextCompat.checkSelfPermission(this, permission.CAMERA) ==
             PackageManager.PERMISSION_DENIED

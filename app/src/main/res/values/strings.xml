@@ -1,3 +1,14 @@
 <resources>
     <string name="app_name">QR Code Scanner</string>
+    <string name="full_name">ФИО</string>
+    <string name="e_mail">e-mail</string>
+    <string name="password">Пароль</string>
+    <string name="confirm_password">Повторите пароль</string>
+    <string name="register">Зарегистрироваться</string>
+    <string name="sign_in">Есть аккаунт? Войти</string>
+    <string name="login">Войти</string>
+    <string name="sign_up">Нет аккаунта? Зарегистрироваться</string>
+    <string name="generate">Сгенерировать</string>
+    <string name="image">Изображение</string>
+    <string name="generation_text">Текст для генерации</string>
 </resources>
