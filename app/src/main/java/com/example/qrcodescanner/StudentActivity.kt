@@ -10,6 +10,12 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.budiyev.android.codescanner.*
 import com.example.qrcodescanner.databinding.ActivityStudentBinding
+import com.fasterxml.jackson.databind.ObjectMapper
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.net.URL
 
 class StudentActivity : AppCompatActivity() {
 
@@ -31,6 +37,30 @@ class StudentActivity : AppCompatActivity() {
         }
     }
 
+    private fun patchToken(
+        token: String
+    ): String {
+        val client = OkHttpClient()
+        val url = URL("https://qr-codes.onrender.com/api/qr/")
+
+        val mapperAll = ObjectMapper()
+        val jacksonObj = mapperAll.createObjectNode()
+        jacksonObj.put("token", token)
+        val jacksonString = jacksonObj.toString()
+
+        val mediaType = "application/json; charset=utf-8".toMediaType()
+        val body = jacksonString.toRequestBody(mediaType)
+
+        val request = Request.Builder()
+            .url(url)
+            .patch(body)
+            .build()
+
+        val response = client.newCall(request).execute()
+
+        return response.body!!.string()
+    }
+
     private fun startScanning() {
         val scannerView: CodeScannerView = findViewById(R.id.scanner_view)
         codeScanner = CodeScanner(this, scannerView)
@@ -44,7 +74,7 @@ class StudentActivity : AppCompatActivity() {
 
         codeScanner.decodeCallback = DecodeCallback {
             runOnUiThread {
-                Toast.makeText(this, "Результаты сканирования: ${it.text}", Toast.LENGTH_SHORT).show()
+                patchToken(it.text)
             }
         }
 
