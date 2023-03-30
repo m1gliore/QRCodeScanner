@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.View
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.Toast
@@ -30,10 +31,10 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.URL
-import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.*
 
-class LecturerActivity : AppCompatActivity() {
+class LecturerActivity : AppCompatActivity(), View.OnClickListener {
 
     private var img: ImageView? = null
     private var btnGenerate: Button? = null
@@ -44,7 +45,7 @@ class LecturerActivity : AppCompatActivity() {
 
     private fun postToken(
         userId: String,
-        date: LocalDate,
+        date: LocalDateTime,
         geoWidth: Double,
         geoHeight: Double
     ): String {
@@ -99,6 +100,8 @@ class LecturerActivity : AppCompatActivity() {
         btnGenerate?.setOnClickListener {
             generateQrCode()
         }
+
+        binding.student.setOnClickListener(this)
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
         getCurrentLocation()
@@ -196,7 +199,7 @@ class LecturerActivity : AppCompatActivity() {
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun generateQrCode() {
-        val date: LocalDate = LocalDate.now()
+        val date: LocalDateTime = LocalDateTime.now()
         val userId: String = getUserId()
         val token: String = postToken(userId, date, tvLatitude, tvLongitude)
         val qrGenerator = QRGEncoder(token, null, QRGContents.Type.TEXT, 200)
@@ -206,6 +209,16 @@ class LecturerActivity : AppCompatActivity() {
             img?.setImageBitmap(btnMap)
         } catch (e: WriterException) {
             Log.v(TAG, e.toString())
+        }
+    }
+
+    override fun onClick(view: View?) {
+        if (view != null) {
+            when (view.id) {
+                R.id.student -> {
+                    startActivity(Intent(this, StudentActivity::class.java))
+                }
+            }
         }
     }
 
