@@ -47,32 +47,28 @@ class LecturerActivity : AppCompatActivity(), View.OnClickListener {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         binding = ActivityLecturerBinding.inflate(LayoutInflater.from(this))
         setContentView(binding.root)
-
         img = findViewById(R.id.imageView)
         btnGenerate = findViewById(R.id.button)
-
         btnGenerate?.setOnClickListener {
-            runOnUiThread(Runnable {
-                generateQrCode()
-            })
+                    runOnUiThread(Runnable {
+                        generateQrCode()
+                    })
         }
 
         binding.student.setOnClickListener(this)
-
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
         getCurrentLocation()
     }
 
     private fun postToken(
-        userId: String,
+        userId: Long,
         date: LocalDateTime,
         geoWidth: Double,
         geoHeight: Double
     ): String {
-        val client = OkHttpClient()
+
         val url = URL("https://qr-codes.onrender.com/api/qr/")
 
         val mapperAll = ObjectMapper()
@@ -93,24 +89,17 @@ class LecturerActivity : AppCompatActivity(), View.OnClickListener {
 
         val response = client.newCall(request).execute()
 
-        val responseData: String = response.body!!.string()
-        Log.d("LecturerActivity", responseData)
-        return responseData
+        return response.body!!.string()
     }
 
-    private fun getUserId(): String {
+    private fun getUserId(): Long {
         val url = URL("https://qr-codes.onrender.com/api/user/me")
-
         val request = Request.Builder()
             .url(url)
             .get()
             .build()
-
         val response = client.newCall(request).execute()
-
-        val responseData: String = response.body!!.string()
-        Log.d("LecturerActivity", responseData)
-        return responseData
+        return response.body!!.string().toLong()
     }
 
     private fun getCurrentLocation() {
@@ -206,7 +195,7 @@ class LecturerActivity : AppCompatActivity(), View.OnClickListener {
     @RequiresApi(Build.VERSION_CODES.O)
     private fun generateQrCode() {
         val date: LocalDateTime = LocalDateTime.now()
-        val userId: String = getUserId()
+        val userId: Long = getUserId()
         val token: String = postToken(userId, date, tvLatitude, tvLongitude)
         val qrGenerator = QRGEncoder(token, null, QRGContents.Type.TEXT, 200)
 
