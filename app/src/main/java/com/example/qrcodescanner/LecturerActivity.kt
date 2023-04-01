@@ -8,6 +8,7 @@ import android.location.Location
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.provider.Settings
 import android.util.Log
 import android.view.LayoutInflater
@@ -52,11 +53,10 @@ class LecturerActivity : AppCompatActivity(), View.OnClickListener {
         img = findViewById(R.id.imageView)
         btnGenerate = findViewById(R.id.button)
         btnGenerate?.setOnClickListener {
-                    runOnUiThread(Runnable {
-                        generateQrCode()
-                    })
+            Thread(Runnable {
+                generateQrCode()
+            }).start()
         }
-
         binding.student.setOnClickListener(this)
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
         getCurrentLocation()
@@ -201,7 +201,9 @@ class LecturerActivity : AppCompatActivity(), View.OnClickListener {
 
         try {
             val btnMap = qrGenerator.bitmap
-            img?.setImageBitmap(btnMap)
+            runOnUiThread(Runnable {
+                img?.setImageBitmap(btnMap)
+            })
         } catch (e: WriterException) {
             Log.v("LecturerActivity", e.toString())
         }
