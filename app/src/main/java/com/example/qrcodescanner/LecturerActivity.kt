@@ -1,7 +1,6 @@
 package com.example.qrcodescanner
 
 import android.Manifest
-import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -26,6 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.zxing.WriterException
+import kotlinx.coroutines.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -42,6 +42,29 @@ class LecturerActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private var tvLatitude: Double = 0.0
     private var tvLongitude: Double = 0.0
+    var client: OkHttpClient = OkHttpClient()
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        binding = ActivityLecturerBinding.inflate(LayoutInflater.from(this))
+        setContentView(binding.root)
+
+        img = findViewById(R.id.imageView)
+        btnGenerate = findViewById(R.id.button)
+
+        btnGenerate?.setOnClickListener {
+            Thread(Runnable {
+                generateQrCode()
+            }).start()
+        }
+
+        binding.student.setOnClickListener(this)
+
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
+        getCurrentLocation()
+    }
 
     private fun postToken(
         userId: String,
@@ -74,7 +97,6 @@ class LecturerActivity : AppCompatActivity(), View.OnClickListener {
     }
 
     private fun getUserId(): String {
-        val client = OkHttpClient()
         val url = URL("https://qr-codes.onrender.com/api/user/me")
 
         val request = Request.Builder()
@@ -84,27 +106,8 @@ class LecturerActivity : AppCompatActivity(), View.OnClickListener {
 
         val response = client.newCall(request).execute()
 
+        Log.d("LecturerActivity", response.body!!.string())
         return response.body!!.string()
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        binding = ActivityLecturerBinding.inflate(LayoutInflater.from(this))
-        setContentView(binding.root)
-
-        img = findViewById(R.id.imageView)
-        btnGenerate = findViewById(R.id.button)
-
-        btnGenerate?.setOnClickListener {
-            generateQrCode()
-        }
-
-        binding.student.setOnClickListener(this)
-
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
-        getCurrentLocation()
     }
 
     private fun getCurrentLocation() {
@@ -208,7 +211,7 @@ class LecturerActivity : AppCompatActivity(), View.OnClickListener {
             val btnMap = qrGenerator.bitmap
             img?.setImageBitmap(btnMap)
         } catch (e: WriterException) {
-            Log.v(TAG, e.toString())
+            Log.v("LecturerActivity", e.toString())
         }
     }
 
