@@ -55,9 +55,9 @@ class LecturerActivity : AppCompatActivity(), View.OnClickListener {
         btnGenerate = findViewById(R.id.button)
 
         btnGenerate?.setOnClickListener {
-            Thread(Runnable {
+            runOnUiThread(Runnable {
                 generateQrCode()
-            }).start()
+            })
         }
 
         binding.student.setOnClickListener(this)
@@ -93,7 +93,9 @@ class LecturerActivity : AppCompatActivity(), View.OnClickListener {
 
         val response = client.newCall(request).execute()
 
-        return response.body!!.string()
+        val responseData: String = response.body!!.string()
+        Log.d("LecturerActivity", responseData)
+        return responseData
     }
 
     private fun getUserId(): String {
@@ -106,8 +108,9 @@ class LecturerActivity : AppCompatActivity(), View.OnClickListener {
 
         val response = client.newCall(request).execute()
 
-        Log.d("LecturerActivity", response.body!!.string())
-        return response.body!!.string()
+        val responseData: String = response.body!!.string()
+        Log.d("LecturerActivity", responseData)
+        return responseData
     }
 
     private fun getCurrentLocation() {
