@@ -9,6 +9,7 @@ import android.location.Location
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Looper
 import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
@@ -28,6 +29,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.URL
 import java.time.LocalDateTime
+
 
 class StudentActivity : AppCompatActivity(), View.OnClickListener {
 
@@ -52,6 +54,7 @@ class StudentActivity : AppCompatActivity(), View.OnClickListener {
             ActivityCompat.requestPermissions(this, arrayOf(permission.CAMERA), 123)
         } else {
             startScanning()
+
         }
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
@@ -158,7 +161,7 @@ class StudentActivity : AppCompatActivity(), View.OnClickListener {
         }
     }
 
-    private fun getUserId(): String {
+    private fun getUserId(): Long {
         val client = OkHttpClient()
         val url = URL("https://qr-codes.onrender.com/api/user/me")
 
@@ -168,13 +171,12 @@ class StudentActivity : AppCompatActivity(), View.OnClickListener {
             .build()
 
         val response = client.newCall(request).execute()
-
-        return response.body!!.string()
+        return response.body!!.string().toLong()
     }
 
     private fun patchToken(
         token: String,
-        userId: String,
+        userId: Long,
         date: LocalDateTime,
         geoWidth: Double,
         geoHeight: Double
@@ -217,11 +219,10 @@ class StudentActivity : AppCompatActivity(), View.OnClickListener {
         codeScanner.isFlashEnabled = false
 
         codeScanner.decodeCallback = DecodeCallback {
-            runOnUiThread {
-                val date: LocalDateTime = LocalDateTime.now()
-                val userId: String = getUserId()
-                patchToken(it.text, userId, date, tvLatitude, tvLongitude)
-            }
+            Toast.makeText(this, it.text, Toast.LENGTH_SHORT).show()
+            val date: LocalDateTime = LocalDateTime.now()
+            val userId: Long = getUserId()
+            patchToken(it.text, userId, date, tvLatitude, tvLongitude)
         }
 
         codeScanner.errorCallback = ErrorCallback {
