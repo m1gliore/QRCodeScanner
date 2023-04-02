@@ -225,7 +225,7 @@ class StudentActivity : AppCompatActivity(), View.OnClickListener {
             val userId: Long = getUserId()
 
             Thread(Runnable {
-                patchToken(it.text, userId, date, tvLatitude, tvLatitude)
+                patchToken(it.text, userId, date, tvLatitude, tvLongitude)
             }).start()
 
             runOnUiThread {
