@@ -210,7 +210,6 @@ class LecturerActivity : AppCompatActivity(), View.OnClickListener {
     }
 
     override fun onClick(view: View?) {
-
         if (view != null) {
             when (view.id) {
                 R.id.student -> {
@@ -219,5 +218,4 @@ class LecturerActivity : AppCompatActivity(), View.OnClickListener {
             }
         }
     }
-
 }
