@@ -231,7 +231,6 @@ class StudentActivity : AppCompatActivity() {
                 Toast.makeText(this, it.text, Toast.LENGTH_SHORT).show()
 
             }
-
         }
 
         codeScanner.errorCallback = ErrorCallback {
