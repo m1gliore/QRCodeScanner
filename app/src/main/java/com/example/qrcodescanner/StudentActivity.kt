@@ -218,6 +218,7 @@ class StudentActivity : AppCompatActivity(), View.OnClickListener {
         codeScanner.isAutoFocusEnabled = true
         codeScanner.isFlashEnabled = false
 
+
         codeScanner.decodeCallback = DecodeCallback {
 
             val date: LocalDateTime = LocalDateTime.now()
@@ -229,7 +230,9 @@ class StudentActivity : AppCompatActivity(), View.OnClickListener {
 
             runOnUiThread {
                 Toast.makeText(this, it.text, Toast.LENGTH_SHORT).show()
+
             }
+
         }
 
         codeScanner.errorCallback = ErrorCallback {
@@ -238,6 +241,8 @@ class StudentActivity : AppCompatActivity(), View.OnClickListener {
                 "Ошибка инициализации камеры: ${it.message}",
                 Toast.LENGTH_SHORT
             ).show()
+
+
         }
 
         scannerView.setOnClickListener {
