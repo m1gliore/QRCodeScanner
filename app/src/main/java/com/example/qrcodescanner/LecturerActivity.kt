@@ -35,7 +35,7 @@ import java.net.URL
 import java.time.LocalDateTime
 import java.util.*
 
-class LecturerActivity : AppCompatActivity(), View.OnClickListener {
+class LecturerActivity : AppCompatActivity() {
 
     private var img: ImageView? = null
     private var btnGenerate: Button? = null
@@ -57,7 +57,6 @@ class LecturerActivity : AppCompatActivity(), View.OnClickListener {
                 generateQrCode()
             }).start()
         }
-        binding.student.setOnClickListener(this)
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
         getCurrentLocation()
     }
@@ -206,17 +205,6 @@ class LecturerActivity : AppCompatActivity(), View.OnClickListener {
             })
         } catch (e: WriterException) {
             Log.v("LecturerActivity", e.toString())
-        }
-    }
-
-    override fun onClick(view: View?) {
-
-        if (view != null) {
-            when (view.id) {
-                R.id.student -> {
-                    startActivity(Intent(this, StudentActivity::class.java))
-                }
-            }
         }
     }
 

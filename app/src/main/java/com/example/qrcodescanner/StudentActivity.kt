@@ -23,6 +23,7 @@ import com.example.qrcodescanner.databinding.ActivityStudentBinding
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -31,7 +32,7 @@ import java.net.URL
 import java.time.LocalDateTime
 
 
-class StudentActivity : AppCompatActivity(), View.OnClickListener {
+class StudentActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityStudentBinding
     private lateinit var codeScanner: CodeScanner
@@ -45,8 +46,6 @@ class StudentActivity : AppCompatActivity(), View.OnClickListener {
 
         binding = ActivityStudentBinding.inflate(LayoutInflater.from(this))
         setContentView(binding.root)
-
-        binding.lecturer.setOnClickListener(this)
 
         if (ContextCompat.checkSelfPermission(this, permission.CAMERA) ==
             PackageManager.PERMISSION_DENIED
@@ -247,16 +246,6 @@ class StudentActivity : AppCompatActivity(), View.OnClickListener {
 
         scannerView.setOnClickListener {
             codeScanner.startPreview()
-        }
-    }
-
-    override fun onClick(view: View?) {
-        if (view != null) {
-            when (view.id) {
-                R.id.lecturer -> {
-                    startActivity(Intent(this, LecturerActivity::class.java))
-                }
-            }
         }
     }
 
