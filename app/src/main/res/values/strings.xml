@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">QR Code Scanner</string>
+    <string name="app_name">Сканер QR-кода</string>
     <string name="full_name">ФИО</string>
     <string name="e_mail">e-mail</string>
     <string name="password">Пароль</string>
@@ -13,4 +13,7 @@
     <string name="generation_text">Текст для генерации</string>
     <string name="lecturer">На препода</string>
     <string name="student">На студента</string>
+    <string name="registration">Регистрация</string>
+    <string name="log_in">Вход</string>
+    <string name="qr_code">Генерация QR-кода</string>
 </resources>
