@@ -8,11 +8,9 @@ import android.location.Location
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
 import android.provider.Settings
 import android.util.Log
 import android.view.LayoutInflater
-import android.view.View
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.Toast
@@ -25,6 +23,7 @@ import com.example.qrcodescanner.databinding.ActivityLecturerBinding
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
+import com.google.android.material.textfield.TextInputEditText
 import com.google.zxing.WriterException
 import kotlinx.coroutines.*
 import okhttp3.MediaType.Companion.toMediaType
@@ -39,11 +38,14 @@ class LecturerActivity : AppCompatActivity() {
 
     private var img: ImageView? = null
     private var btnGenerate: Button? = null
+    private var lessonInput: TextInputEditText? = null
+    private var groupInput: TextInputEditText? = null
     private lateinit var binding: ActivityLecturerBinding
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private var tvLatitude: Double = 0.0
     private var tvLongitude: Double = 0.0
     var client: OkHttpClient = OkHttpClient()
+    var hamburger: ImageView? = null
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,9 +54,17 @@ class LecturerActivity : AppCompatActivity() {
         setContentView(binding.root)
         img = findViewById(R.id.imageView)
         btnGenerate = findViewById(R.id.button)
+        lessonInput = findViewById(R.id.lesson)
+        groupInput = findViewById(R.id.group)
+        hamburger = findViewById(R.id.hamburger)
         btnGenerate?.setOnClickListener {
             Thread(Runnable {
                 generateQrCode()
+            }).start()
+        }
+        hamburger?.setOnClickListener {
+            Thread(Runnable {
+                startActivity(Intent(this, LecturerResultActivity::class.java))
             }).start()
         }
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
@@ -65,7 +75,9 @@ class LecturerActivity : AppCompatActivity() {
         userId: Long,
         date: LocalDateTime,
         geoWidth: Double,
-        geoHeight: Double
+        geoHeight: Double,
+        className: String,
+        groupNames: String
     ): String {
 
         val url = URL("https://qr-codes.onrender.com/api/qr/")
@@ -76,6 +88,8 @@ class LecturerActivity : AppCompatActivity() {
         jacksonObj.put("date", date.toString())
         jacksonObj.put("geoWidth", geoWidth)
         jacksonObj.put("geoHeight", geoHeight)
+        jacksonObj.put("className", className)
+        jacksonObj.put("groupNames", groupNames)
         val jacksonString = jacksonObj.toString()
 
         val mediaType = "application/json; charset=utf-8".toMediaType()
@@ -195,7 +209,9 @@ class LecturerActivity : AppCompatActivity() {
     private fun generateQrCode() {
         val date: LocalDateTime = LocalDateTime.now()
         val userId: Long = getUserId()
-        val token: String = postToken(userId, date, tvLatitude, tvLongitude)
+        val className: String = lessonInput?.text.toString()
+        val groupNames: String = groupInput?.text.toString()
+        val token: String = postToken(userId, date, tvLatitude, tvLongitude, className, groupNames)
         val qrGenerator = QRGEncoder(token, null, QRGContents.Type.TEXT, 200)
 
         try {

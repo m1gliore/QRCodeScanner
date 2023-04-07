@@ -9,21 +9,26 @@ import android.location.Location
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
-import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import android.view.LayoutInflater
-import android.view.View
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.budiyev.android.codescanner.*
+import com.example.qrcodescanner.custom.Person
 import com.example.qrcodescanner.databinding.ActivityStudentBinding
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.*
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -39,6 +44,7 @@ class StudentActivity : AppCompatActivity() {
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
     private var tvLatitude: Double = 0.0
     private var tvLongitude: Double = 0.0
+    var hamburger: ImageView? = null
 
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,7 +59,13 @@ class StudentActivity : AppCompatActivity() {
             ActivityCompat.requestPermissions(this, arrayOf(permission.CAMERA), 123)
         } else {
             startScanning()
+        }
 
+        hamburger = findViewById(R.id.hamburger)
+        hamburger?.setOnClickListener {
+            Thread(Runnable {
+                startActivity(Intent(this, StudentResultActivity::class.java))
+            }).start()
         }
 
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
@@ -205,6 +217,26 @@ class StudentActivity : AppCompatActivity() {
         return response.body!!.string()
     }
 
+
+    private fun getLessons(
+        userId: Long
+    ): List<Person> {
+        val client = OkHttpClient()
+        val url: String = ("https://qr-codes.onrender.com/api/qr/")
+            .toHttpUrlOrNull()!!
+            .newBuilder()
+            .addQueryParameter("userId", userId.toString())
+            .build()
+            .toString()
+        val request = Request.Builder()
+            .url(url)
+            .get()
+            .build()
+        val response = client.newCall(request).execute()
+        val mapper = jacksonObjectMapper().registerModule(JavaTimeModule())
+        return mapper.readValue(response.body?.string() ?: "")
+    }
+
     @RequiresApi(Build.VERSION_CODES.O)
     private fun startScanning() {
         val scannerView: CodeScannerView = findViewById(R.id.scanner_view)
@@ -225,11 +257,12 @@ class StudentActivity : AppCompatActivity() {
 
             Thread(Runnable {
                 patchToken(it.text, userId, date, tvLatitude, tvLongitude)
+                val lessons: List<Person> = getLessons(userId)
+                Log.d("StudentActivity", lessons.toString())
             }).start()
 
             runOnUiThread {
                 Toast.makeText(this, it.text, Toast.LENGTH_SHORT).show()
-
             }
 
         }

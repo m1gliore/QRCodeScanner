@@ -16,4 +16,10 @@
     <string name="registration">Регистрация</string>
     <string name="log_in">Вход</string>
     <string name="qr_code">Генерация QR-кода</string>
+    <string name="groups">Введите группы</string>
+    <string name="item">Введите предмет</string>
+    <string name="hamburger">hamburger</string>
+    <string name="VDISHP">ВДИШП</string>
+    <string name="_072302">072302</string>
+    <string name="_7_00_pm">7:00 pm</string>
 </resources>
