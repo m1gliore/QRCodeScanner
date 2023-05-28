@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
 
     <uses-feature
         android:name="android.hardware.camera"
@@ -24,6 +26,14 @@
         tools:targetApi="31">
         <activity
             android:name=".RegisterActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".RegisterLecturerActivity"
             android:exported="true" />
         <activity
             android:name=".LoginActivity"
@@ -36,13 +46,12 @@
             android:exported="true" />
         <activity
             android:name=".StudentResultActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter></activity>
+            android:exported="true" />
         <activity
             android:name=".LecturerResultActivity"
+            android:exported="true" />
+        <activity
+            android:name=".StudentsListActivity"
             android:exported="true" />
     </application>
 

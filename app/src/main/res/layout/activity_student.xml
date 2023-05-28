@@ -28,17 +28,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:maskColor="#77000000">
-
-        <ImageView
-            android:id="@+id/hamburger"
-            android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:layout_centerHorizontal="true"
-            android:layout_centerVertical="true"
-            android:layout_marginStart="185dp"
-            android:layout_marginTop="-530dp"
-            android:contentDescription="@string/hamburger"
-            android:src="@drawable/burger_menu_white" />
     </com.budiyev.android.codescanner.CodeScannerView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

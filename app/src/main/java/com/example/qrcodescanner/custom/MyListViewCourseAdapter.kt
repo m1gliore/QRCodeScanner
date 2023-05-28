@@ -9,19 +9,21 @@ import android.widget.ArrayAdapter
 import android.widget.TextView
 import com.example.qrcodescanner.R
 
-class MyListViewAdapter(private val context: Activity, private val arrayList: ArrayList<User>) :
-    ArrayAdapter<User>(context, R.layout.list_item, arrayList) {
+class MyListViewCourseAdapter(private val context: Activity, private val arrayList: ArrayList<Course>) :
+    ArrayAdapter<Course>(context, R.layout.list_item_lecturer, arrayList) {
 
     @SuppressLint("ViewHolder", "InflateParams")
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
         val inflater: LayoutInflater = LayoutInflater.from(context)
-        val view: View = inflater.inflate(R.layout.list_item, null)
+        val view: View = inflater.inflate(R.layout.list_item_lecturer, null)
 
         val lesson: TextView = view.findViewById(R.id.lesson)
+        val groups: TextView = view.findViewById(R.id.groups)
         val dateTime: TextView = view.findViewById(R.id.date_time)
 
         lesson.text = arrayList[position].className
         dateTime.text = arrayList[position].date
+        groups.text = arrayList[position].groupNames
 
         return view
     }

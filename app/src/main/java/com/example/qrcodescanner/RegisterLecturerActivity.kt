@@ -1,20 +1,17 @@
 package com.example.qrcodescanner
 
-import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
-import android.util.Base64
-import android.util.Log
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.example.qrcodescanner.databinding.ActivityRegisterBinding
+import com.example.qrcodescanner.databinding.ActivityRegisterLecturerBinding
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
@@ -26,43 +23,16 @@ import org.json.JSONObject
 import java.io.IOException
 import java.net.URL
 
-class RegisterActivity : AppCompatActivity(), View.OnClickListener, View.OnFocusChangeListener,
+class RegisterLecturerActivity : AppCompatActivity(), View.OnClickListener, View.OnFocusChangeListener,
     View.OnKeyListener, TextWatcher {
 
-    private lateinit var binding: ActivityRegisterBinding
+    private lateinit var binding: ActivityRegisterLecturerBinding
     private var client: OkHttpClient = OkHttpClient()
-    private var jwtToken: String? = ""
-
-    private fun getJwtToken(context: Context): String? {
-        val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
-        return sharedPreferences.getString("jwtToken", null)
-    }
-
-    private fun getRole(context: Context): String? {
-        val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
-        return sharedPreferences.getString("role", null)
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val jwtToken = getJwtToken(this)
-        if (jwtToken != null) {
-
-            val intent = when (getRole(this)) {
-                "ROLE_STUDENT" -> Intent(this, StudentActivity::class.java)
-                "ROLE_LECTURER" -> Intent(this, LecturerActivity::class.java)
-                else -> null
-            }
-
-            if (intent != null) {
-                startActivity(intent)
-                finish()
-                return
-            }
-        }
-
-        binding = ActivityRegisterBinding.inflate(LayoutInflater.from(this))
+        binding = ActivityRegisterLecturerBinding.inflate(LayoutInflater.from(this))
         setContentView(binding.root)
 
         binding.fullNameEt.onFocusChangeListener = this
@@ -77,11 +47,11 @@ class RegisterActivity : AppCompatActivity(), View.OnClickListener, View.OnFocus
             onSubmit()
         }
         binding.signIn.setOnClickListener(this)
-        binding.signUpLecturer.setOnClickListener(this)
+        binding.signUpStudent.setOnClickListener(this)
     }
 
     private fun registerUser(username: String, name: String, password: String) {
-        val url = URL("https://qr-codes.onrender.com/api/students/signup")
+        val url = URL("https://qr-codes.onrender.com/api/lecturers/signup")
         val mapper = ObjectMapper()
         val jacksonObj = mapper.createObjectNode()
         jacksonObj.put("username", username)
@@ -101,7 +71,7 @@ class RegisterActivity : AppCompatActivity(), View.OnClickListener, View.OnFocus
             override fun onFailure(call: Call, e: IOException) {
                 runOnUiThread {
                     Toast.makeText(
-                        this@RegisterActivity,
+                        this@RegisterLecturerActivity,
                         "Ошибка при выполнении запроса",
                         Toast.LENGTH_SHORT
                     ).show()
@@ -113,11 +83,11 @@ class RegisterActivity : AppCompatActivity(), View.OnClickListener, View.OnFocus
                 if (response.isSuccessful) {
                     runOnUiThread {
                         Toast.makeText(
-                            this@RegisterActivity,
+                            this@RegisterLecturerActivity,
                             "Регистрация прошла успешно",
                             Toast.LENGTH_SHORT
                         ).show()
-                        startActivity(Intent(this@RegisterActivity, LoginActivity::class.java))
+                        startActivity(Intent(this@RegisterLecturerActivity, LoginActivity::class.java))
                     }
                 } else {
                     val errorMessage = try {
@@ -128,7 +98,7 @@ class RegisterActivity : AppCompatActivity(), View.OnClickListener, View.OnFocus
                     }
 
                     runOnUiThread {
-                        Toast.makeText(this@RegisterActivity, errorMessage, Toast.LENGTH_SHORT)
+                        Toast.makeText(this@RegisterLecturerActivity, errorMessage, Toast.LENGTH_SHORT)
                             .show()
                     }
                 }
@@ -206,7 +176,7 @@ class RegisterActivity : AppCompatActivity(), View.OnClickListener, View.OnFocus
         when (view?.id) {
             R.id.registerBtn -> onSubmit()
             R.id.signIn -> startActivity(Intent(this, LoginActivity::class.java))
-            R.id.signUpLecturer -> startActivity(Intent(this, RegisterLecturerActivity::class.java))
+            R.id.signUpStudent -> startActivity(Intent(this, RegisterActivity::class.java))
         }
     }
 
@@ -289,10 +259,6 @@ class RegisterActivity : AppCompatActivity(), View.OnClickListener, View.OnFocus
     }
 
     override fun afterTextChanged(p0: Editable?) {}
-
-    override fun onStart() {
-        super.onStart()
-    }
 
     private fun onSubmit() {
         if (validate()) {

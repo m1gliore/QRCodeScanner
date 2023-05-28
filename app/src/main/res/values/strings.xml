@@ -22,4 +22,15 @@
     <string name="VDISHP">ВДИШП</string>
     <string name="_072302">072302</string>
     <string name="_7_00_pm">7:00 pm</string>
+    <string name="username">Имя пользователя</string>
+    <string name="greeting">Здравствуйте, %s</string>
+    <string name="sign_up_lecturer">Зарегистрироваться как преподаватель</string>
+    <string name="sign_up_student">Зарегистрироваться как студент</string>
+    <string name="lessons_yes">Посещённые пары</string>
+    <string name="_072302_072301_072304_072301">072302, 072301, 072304, 072301</string>
+    <string name="lessons_com">Проведённые пары</string>
+    <string name="students">Студенты</string>
+    <string name="exit">Выход</string>
+    <string name="settings">Настройки</string>
+    <string name="menu">Меню</string>
 </resources>

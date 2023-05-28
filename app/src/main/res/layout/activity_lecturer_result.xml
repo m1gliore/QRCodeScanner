@@ -8,13 +8,26 @@
     tools:context=".LecturerResultActivity">
 
     <TextView
-        android:id="@+id/textView"
-        android:layout_width="wrap_content"
+        android:id="@+id/textView3"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="323dp"
-        android:text="TextView"
+        android:textAlignment="center"
+        android:textSize="20sp"
+        android:text="@string/lessons_com"
+        app:layout_constraintStart_toStartOf="@+id/list_view_lecturer"
+        app:layout_constraintTop_toTopOf="@+id/list_view_lecturer" />
+
+    <ListView
+        android:id="@+id/list_view_lecturer"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:paddingTop="20dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        tools:listitem="@layout/list_item_lecturer">
+
+    </ListView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

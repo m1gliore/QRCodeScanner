@@ -1,40 +1,37 @@
 package com.example.qrcodescanner
 
-import android.Manifest
 import android.Manifest.permission
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.location.Location
 import android.location.LocationManager
-import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.util.Log
 import android.view.LayoutInflater
-import android.widget.ImageView
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Toast
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.budiyev.android.codescanner.*
-import com.example.qrcodescanner.custom.Person
 import com.example.qrcodescanner.databinding.ActivityStudentBinding
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
-import kotlinx.coroutines.*
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
+import com.google.android.gms.location.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
+import retrofit2.Retrofit
+import retrofit2.converter.jackson.JacksonConverterFactory
 import java.net.URL
-import java.time.LocalDateTime
 
 
 class StudentActivity : AppCompatActivity() {
@@ -42,164 +39,25 @@ class StudentActivity : AppCompatActivity() {
     private lateinit var binding: ActivityStudentBinding
     private lateinit var codeScanner: CodeScanner
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
+    private lateinit var locationRequest: LocationRequest
+    private lateinit var locationCallback: LocationCallback
+    private val permissionRequestAccessLocation = 100
     private var tvLatitude: Double = 0.0
     private var tvLongitude: Double = 0.0
-    var hamburger: ImageView? = null
+    private lateinit var retrofit: Retrofit
+    private var client: OkHttpClient = OkHttpClient()
+    private var jwtToken: String? = ""
 
-    @RequiresApi(Build.VERSION_CODES.O)
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        binding = ActivityStudentBinding.inflate(LayoutInflater.from(this))
-        setContentView(binding.root)
-
-        if (ContextCompat.checkSelfPermission(this, permission.CAMERA) ==
-            PackageManager.PERMISSION_DENIED
-        ) {
-            ActivityCompat.requestPermissions(this, arrayOf(permission.CAMERA), 123)
-        } else {
-            startScanning()
-        }
-
-        hamburger = findViewById(R.id.hamburger)
-        hamburger?.setOnClickListener {
-            Thread(Runnable {
-                startActivity(Intent(this, StudentResultActivity::class.java))
-            }).start()
-        }
-
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
-        getCurrentLocation()
-    }
-
-    private fun getCurrentLocation() {
-        if (checkPermissions()) {
-            if (isLocationEnabled()) {
-                if (ActivityCompat.checkSelfPermission(
-                        this,
-                        Manifest.permission.ACCESS_FINE_LOCATION
-                    ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                        this,
-                        Manifest.permission.ACCESS_COARSE_LOCATION
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    requestPermission()
-                    return
-                }
-                fusedLocationProviderClient.lastLocation.addOnCompleteListener(this) { task ->
-                    val location: Location? = task.result
-                    if (location == null) {
-                        Toast.makeText(this, "Null Received", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(this, "Get Success", Toast.LENGTH_SHORT).show()
-                        tvLatitude = location.latitude
-                        tvLongitude = location.longitude
-                    }
-                }
-            } else {
-                Toast.makeText(this, "Turn on location", Toast.LENGTH_SHORT).show()
-                val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-                startActivity(intent)
-            }
-        } else {
-            requestPermission()
-        }
-    }
-
-    private fun isLocationEnabled(): Boolean {
-        val locationManager: LocationManager =
-            getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(
-            LocationManager.NETWORK_PROVIDER
-        )
-    }
-
-    private fun requestPermission() {
-        ActivityCompat.requestPermissions(
-            this,
-            arrayOf(
-                android.Manifest.permission.ACCESS_COARSE_LOCATION,
-                android.Manifest.permission.ACCESS_FINE_LOCATION
-            ),
-            PERMISSION_REQUEST_ACCESS_LOCATION
-        )
-    }
-
-    companion object {
-        private const val PERMISSION_REQUEST_ACCESS_LOCATION = 100
-    }
-
-    private fun checkPermissions(): Boolean {
-
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                android.Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this,
-                android.Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            return true
-        }
-
-        return false
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-        if (requestCode == PERMISSION_REQUEST_ACCESS_LOCATION) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(applicationContext, "Granted", Toast.LENGTH_SHORT).show()
-                getCurrentLocation()
-            } else {
-                Toast.makeText(applicationContext, "Denied", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        if (requestCode == 123) {
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Права камеры получены", Toast.LENGTH_SHORT).show()
-                startScanning()
-            } else {
-                Toast.makeText(this, "Права камеры отклонены", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    private fun getUserId(): Long {
-        val client = OkHttpClient()
-        val url = URL("https://qr-codes.onrender.com/api/user/me")
-
-        val request = Request.Builder()
-            .url(url)
-            .get()
-            .build()
-
-        val response = client.newCall(request).execute()
-        return response.body!!.string().toLong()
-    }
-
-    private fun patchToken(
+    private suspend fun patchToken(
+        jwtToken: String,
         token: String,
-        userId: Long,
-        date: LocalDateTime,
         geoWidth: Double,
         geoHeight: Double
-    ): String {
-        val client = OkHttpClient()
+    ): String = withContext(Dispatchers.IO) {
         val url = URL("https://qr-codes.onrender.com/api/qr/")
-
-        val mapperAll = ObjectMapper()
-        val jacksonObj = mapperAll.createObjectNode()
+        val mapper = ObjectMapper()
+        val jacksonObj = mapper.createObjectNode()
         jacksonObj.put("token", token)
-        jacksonObj.put("userId", userId)
-        jacksonObj.put("date", date.toString())
         jacksonObj.put("geoWidth", geoWidth)
         jacksonObj.put("geoHeight", geoHeight)
         val jacksonString = jacksonObj.toString()
@@ -209,90 +67,392 @@ class StudentActivity : AppCompatActivity() {
 
         val request = Request.Builder()
             .url(url)
+            .header("Authorization", "Bearer $jwtToken")
             .patch(body)
             .build()
 
         val response = client.newCall(request).execute()
 
-        return response.body!!.string()
+        return@withContext response.body?.string() ?: ""
     }
 
-
-    private fun getLessons(
-        userId: Long
-    ): List<Person> {
-        val client = OkHttpClient()
-        val url: String = ("https://qr-codes.onrender.com/api/qr/")
-            .toHttpUrlOrNull()!!
-            .newBuilder()
-            .addQueryParameter("userId", userId.toString())
-            .build()
-            .toString()
-        val request = Request.Builder()
-            .url(url)
-            .get()
-            .build()
-        val response = client.newCall(request).execute()
-        val mapper = jacksonObjectMapper().registerModule(JavaTimeModule())
-        return mapper.readValue(response.body?.string() ?: "")
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu_layout, menu)
+        return true
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    private fun logout() {
+        val sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE)
+        val editor: SharedPreferences.Editor = sharedPreferences.edit()
+        editor.putString("jwtToken", null)
+        editor.apply()
+
+        val intent = Intent(this, LoginActivity::class.java)
+        startActivity(intent)
+        finish()
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_settings -> {
+                val role = getRole(this)
+                if (role == "ROLE_STUDENT") {
+                    startActivity(Intent(this, StudentResultActivity::class.java))
+                } else if (role == "ROLE_LECTURER") {
+                    startActivity(Intent(this, LecturerResultActivity::class.java))
+                }
+                true
+            }
+            R.id.action_exit -> {
+                logout()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun getJwtToken(context: Context): String? {
+        val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
+        return sharedPreferences.getString("jwtToken", null)
+    }
+
+    private fun getRole(context: Context): String? {
+        val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
+        return sharedPreferences.getString("role", null)
+    }
+
+    private var hasCameraPermission = false
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        binding = ActivityStudentBinding.inflate(LayoutInflater.from(this))
+        setContentView(binding.root)
+
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
+        locationRequest = createLocationRequest()
+
+        locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult?) {
+                locationResult ?: return
+                for (location in locationResult.locations) {
+                    tvLatitude = location.latitude
+                    tvLongitude = location.longitude
+                }
+            }
+        }
+
+        jwtToken = getJwtToken(this)
+
+        if (ContextCompat.checkSelfPermission(
+                this,
+                permission.CAMERA
+            ) == PackageManager.PERMISSION_DENIED
+        ) {
+            ActivityCompat.requestPermissions(this, arrayOf(permission.CAMERA), 123)
+        } else {
+            hasCameraPermission = true
+        }
+
+        retrofit = Retrofit.Builder()
+            .baseUrl("https://qr-codes.onrender.com/")
+            .addConverterFactory(JacksonConverterFactory.create())
+            .client(OkHttpClient())
+            .build()
+    }
+
+    private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Main)
+
     private fun startScanning() {
-        val scannerView: CodeScannerView = findViewById(R.id.scanner_view)
-        codeScanner = CodeScanner(this, scannerView)
-        codeScanner.camera = CodeScanner.CAMERA_BACK
-        codeScanner.formats = CodeScanner.ALL_FORMATS
+        if (hasCameraPermission) {
+            val scannerView: CodeScannerView = findViewById(R.id.scanner_view)
+            codeScanner = CodeScanner(this, scannerView)
+            codeScanner.camera = CodeScanner.CAMERA_BACK
+            codeScanner.formats = CodeScanner.ALL_FORMATS
 
-        codeScanner.autoFocusMode = AutoFocusMode.SAFE
-        codeScanner.scanMode = ScanMode.SINGLE
-        codeScanner.isAutoFocusEnabled = true
-        codeScanner.isFlashEnabled = false
+            codeScanner.autoFocusMode = AutoFocusMode.SAFE
+            codeScanner.scanMode = ScanMode.SINGLE
+            codeScanner.isAutoFocusEnabled = true
+            codeScanner.isFlashEnabled = false
 
+            codeScanner.decodeCallback = DecodeCallback { result ->
 
-        codeScanner.decodeCallback = DecodeCallback {
+                coroutineScope.launch(Dispatchers.IO) {
+                    try {
+                        val response = withContext(Dispatchers.IO) {
+                            patchToken(
+                                jwtToken.toString(),
+                                result.text,
+                                tvLatitude,
+                                tvLongitude
+                            )
+                        }
 
-            val date: LocalDateTime = LocalDateTime.now()
-            val userId: Long = getUserId()
+                        if (response.isEmpty()) {
+                            runOnUiThread {
+                                Toast.makeText(
+                                    this@StudentActivity,
+                                    "Посещение зачтено",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        } else {
+                            val jsonResponse = JSONObject(response)
+                            if (jsonResponse.has("message")) {
+                                val message = jsonResponse.getString("message")
+                                runOnUiThread {
+                                    Toast.makeText(
+                                        this@StudentActivity,
+                                        "Произошла ошибка: $message",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            } else {
+                                runOnUiThread {
+                                    Toast.makeText(
+                                        this@StudentActivity,
+                                        "Произошла непредвиденная ошибка",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        runOnUiThread {
+                            Toast.makeText(
+                                this@StudentActivity,
+                                "Произошла непредвиденная ошибка",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                }
 
-            Thread(Runnable {
-                patchToken(it.text, userId, date, tvLatitude, tvLongitude)
-                val lessons: List<Person> = getLessons(userId)
-                Log.d("StudentActivity", lessons.toString())
-            }).start()
+                runOnUiThread {
 
-            runOnUiThread {
-                Toast.makeText(this, it.text, Toast.LENGTH_SHORT).show()
+                }
             }
 
-        }
+            codeScanner.errorCallback = ErrorCallback { error ->
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        "Camera initialization error: ${error.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
 
-        codeScanner.errorCallback = ErrorCallback {
-            Toast.makeText(
-                this,
-                "Ошибка инициализации камеры: ${it.message}",
-                Toast.LENGTH_SHORT
-            ).show()
+            scannerView.setOnClickListener {
+                codeScanner.startPreview()
+            }
 
+            codeScanner.startPreview()
+        } else {
+            val scannerView: CodeScannerView = findViewById(R.id.scanner_view)
+            codeScanner = CodeScanner(this, scannerView)
+            codeScanner.camera = CodeScanner.CAMERA_BACK
+            codeScanner.formats = CodeScanner.ALL_FORMATS
 
-        }
+            codeScanner.autoFocusMode = AutoFocusMode.SAFE
+            codeScanner.scanMode = ScanMode.SINGLE
+            codeScanner.isAutoFocusEnabled = true
+            codeScanner.isFlashEnabled = false
 
-        scannerView.setOnClickListener {
+            codeScanner.decodeCallback = DecodeCallback { result ->
+
+                coroutineScope.launch(Dispatchers.IO) {
+                    try {
+                        val response = withContext(Dispatchers.IO) {
+                            patchToken(
+                                jwtToken.toString(),
+                                result.text,
+                                tvLatitude,
+                                tvLongitude
+                            )
+                        }
+
+                        if (response.isEmpty()) {
+                            runOnUiThread {
+                                Toast.makeText(
+                                    this@StudentActivity,
+                                    "Посещение зачтено",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        } else {
+                            val jsonResponse = JSONObject(response)
+                            if (jsonResponse.has("message")) {
+                                val message = jsonResponse.getString("message")
+                                runOnUiThread {
+                                    Toast.makeText(
+                                        this@StudentActivity,
+                                        "Произошла ошибка: $message",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            } else {
+                                runOnUiThread {
+                                    Toast.makeText(
+                                        this@StudentActivity,
+                                        "Произошла непредвиденная ошибка",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        runOnUiThread {
+                            Toast.makeText(
+                                this@StudentActivity,
+                                "Произошла непредвиденная ошибка",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                }
+
+                runOnUiThread {
+
+                }
+            }
+
+            codeScanner.errorCallback = ErrorCallback { error ->
+                runOnUiThread {
+                    Toast.makeText(
+                        this,
+                        "Camera initialization error: ${error.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+
+            scannerView.setOnClickListener {
+                codeScanner.startPreview()
+            }
+
             codeScanner.startPreview()
         }
+    }
+
+    @SuppressLint("VisibleForTests")
+    private fun createLocationRequest(): LocationRequest {
+        val locationRequest = LocationRequest()
+        locationRequest.interval = 10000
+        locationRequest.fastestInterval = 5000
+        locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+        return locationRequest
+    }
+
+    private fun startLocationUpdates() {
+        if (checkPermissions()) {
+            try {
+                fusedLocationProviderClient.requestLocationUpdates(
+                    locationRequest,
+                    locationCallback,
+                    null
+                )
+            } catch (e: SecurityException) {
+                Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun stopLocationUpdates() {
+        fusedLocationProviderClient.removeLocationUpdates(locationCallback)
+    }
+
+    private fun checkPermissions(): Boolean {
+        return ActivityCompat.checkSelfPermission(
+            this,
+            permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(
+                    this,
+                    permission.ACCESS_COARSE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun requestLocationPermission() {
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(
+                permission.ACCESS_FINE_LOCATION,
+                permission.ACCESS_COARSE_LOCATION
+            ),
+            permissionRequestAccessLocation
+        )
+    }
+
+    private fun isLocationEnabled(): Boolean {
+        val locationManager: LocationManager =
+            getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (requestCode == 123 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            hasCameraPermission = true
+            startScanning()
+        }
+    }
+
+    private fun openLocationSettings() {
+        val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+        startActivity(intent)
     }
 
     override fun onResume() {
         super.onResume()
-        if (::codeScanner.isInitialized) {
-            codeScanner.startPreview()
+
+        if (checkCameraPermission()) {
+            if (::codeScanner.isInitialized) {
+                codeScanner.startPreview()
+            } else {
+                startScanning()
+            }
+        } else {
+            requestCameraPermission()
+        }
+
+        if (checkPermissions()) {
+            if (isLocationEnabled()) {
+                startLocationUpdates()
+            } else {
+                openLocationSettings()
+            }
+        } else {
+            requestLocationPermission()
         }
     }
 
+    private fun checkCameraPermission(): Boolean {
+        return ContextCompat.checkSelfPermission(
+            this,
+            permission.CAMERA
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun requestCameraPermission() {
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(permission.CAMERA),
+            123
+        )
+    }
+
     override fun onPause() {
+        super.onPause()
         if (::codeScanner.isInitialized) {
             codeScanner.releaseResources()
         }
-        super.onPause()
+        stopLocationUpdates()
     }
 }

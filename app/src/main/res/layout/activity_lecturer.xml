@@ -7,25 +7,10 @@
     android:background="@color/light_grey"
     tools:context=".LecturerActivity">
 
-    <ImageView
-        android:id="@+id/hamburger"
-        android:layout_width="30dp"
-        android:layout_height="0dp"
-        android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true"
-        android:layout_marginStart="15dp"
-        android:layout_marginBottom="475dp"
-        android:contentDescription="@string/hamburger"
-        android:src="@drawable/burger_menu"
-        app:layout_constraintBottom_toTopOf="@+id/textInputLayout11"
-        app:layout_constraintRight_toLeftOf="@+id/linearLayout2"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <LinearLayout
         android:id="@+id/linearLayout2"
-        android:layout_width="300dp"
-        android:layout_height="50dp"
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
         android:layout_marginTop="52dp"
         android:gravity="center"
         app:layout_constraintEnd_toEndOf="parent"
@@ -34,10 +19,11 @@
 
         <TextView
             android:id="@+id/textView2"
-            android:layout_width="wrap_content"
-            android:layout_height="50dp"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:paddingStart="50dp"
             android:text="@string/qr_code"
-            android:textSize="30sp"
+            android:textSize="16sp"
             app:layout_constraintBottom_toTopOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -72,7 +58,6 @@
         <LinearLayout
             android:layout_width="250dp"
             android:layout_height="250dp"
-            android:layout_margin="5dp"
             android:orientation="horizontal">
 
             <ImageView
@@ -91,11 +76,10 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="1dp"
         android:layout_marginEnd="1dp"
-        android:layout_marginBottom="23dp"
-        app:layout_constraintBottom_toTopOf="@+id/textInputLayout12"
+        android:layout_marginBottom="180dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/hamburger">
+        app:layout_constraintStart_toStartOf="parent">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/lesson"
@@ -110,7 +94,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="1dp"
         android:layout_marginEnd="1dp"
-        android:layout_marginBottom="103dp"
+        android:layout_marginBottom="80dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

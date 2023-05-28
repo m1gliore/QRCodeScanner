@@ -1,91 +1,251 @@
 package com.example.qrcodescanner
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.location.Location
+import android.graphics.Bitmap
+import android.graphics.Color
 import android.location.LocationManager
-import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Button
-import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
-import androidmads.library.qrgenearator.QRGContents
-import androidmads.library.qrgenearator.QRGEncoder
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.example.qrcodescanner.databinding.ActivityLecturerBinding
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
-import com.google.android.material.textfield.TextInputEditText
+import com.google.android.gms.location.*
+import com.google.zxing.BarcodeFormat
 import com.google.zxing.WriterException
+import com.google.zxing.common.BitMatrix
+import com.google.zxing.qrcode.QRCodeWriter
 import kotlinx.coroutines.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.net.URL
-import java.time.LocalDateTime
-import java.util.*
 
 class LecturerActivity : AppCompatActivity() {
 
-    private var img: ImageView? = null
-    private var btnGenerate: Button? = null
-    private var lessonInput: TextInputEditText? = null
-    private var groupInput: TextInputEditText? = null
     private lateinit var binding: ActivityLecturerBinding
     private lateinit var fusedLocationProviderClient: FusedLocationProviderClient
+    private lateinit var locationRequest: LocationRequest
+    private lateinit var locationCallback: LocationCallback
+    private val permissionRequestAccessLocation = 100
     private var tvLatitude: Double = 0.0
     private var tvLongitude: Double = 0.0
-    var client: OkHttpClient = OkHttpClient()
-    var hamburger: ImageView? = null
+    private var client: OkHttpClient = OkHttpClient()
+    private var jwtToken: String? = ""
 
-    @RequiresApi(Build.VERSION_CODES.O)
+    private fun getJwtToken(context: Context): String? {
+        val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
+        return sharedPreferences.getString("jwtToken", null)
+    }
+
+    private fun getName(context: Context): String? {
+        val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
+        return sharedPreferences.getString("name", null)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityLecturerBinding.inflate(LayoutInflater.from(this))
         setContentView(binding.root)
-        img = findViewById(R.id.imageView)
-        btnGenerate = findViewById(R.id.button)
-        lessonInput = findViewById(R.id.lesson)
-        groupInput = findViewById(R.id.group)
-        hamburger = findViewById(R.id.hamburger)
-        btnGenerate?.setOnClickListener {
-            Thread(Runnable {
-                generateQrCode()
-            }).start()
-        }
-        hamburger?.setOnClickListener {
-            Thread(Runnable {
-                startActivity(Intent(this, LecturerResultActivity::class.java))
-            }).start()
-        }
+
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
-        getCurrentLocation()
+        locationRequest = createLocationRequest()
+
+        locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult?) {
+                locationResult ?: return
+                for (location in locationResult.locations) {
+                    tvLatitude = location.latitude
+                    tvLongitude = location.longitude
+                }
+            }
+        }
+
+        val btnGenerate: Button = findViewById(R.id.button)
+        val header: TextView = findViewById(R.id.textView2)
+        val name = getName(this)
+        val greeting = getString(R.string.greeting, name)
+        header.text = greeting
+        jwtToken = getJwtToken(this)
+
+        btnGenerate.setOnClickListener {
+            CoroutineScope(Dispatchers.Main).launch {
+                generateQrCode()
+            }
+        }
     }
 
-    private fun postToken(
-        userId: Long,
-        date: LocalDateTime,
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu_layout, menu)
+        return true
+    }
+
+    private fun logout() {
+        val sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE)
+        val editor: SharedPreferences.Editor = sharedPreferences.edit()
+        editor.putString("jwtToken", null)
+        editor.apply()
+
+        val intent = Intent(this, LoginActivity::class.java)
+        startActivity(intent)
+        finish()
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_settings -> {
+                val role = getRole(this)
+                if (role == "ROLE_STUDENT") {
+                    startActivity(Intent(this, StudentResultActivity::class.java))
+                } else if (role == "ROLE_LECTURER") {
+                    startActivity(Intent(this, LecturerResultActivity::class.java))
+                }
+                true
+            }
+            R.id.action_exit -> {
+                logout()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun getRole(context: Context): String? {
+        val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
+        return sharedPreferences.getString("role", null)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (checkPermissions()) {
+            if (isLocationEnabled()) {
+                startLocationUpdates()
+            } else {
+                openLocationSettings()
+            }
+        } else {
+            requestLocationPermission()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        stopLocationUpdates()
+    }
+
+    @SuppressLint("VisibleForTests")
+    private fun createLocationRequest(): LocationRequest {
+        val locationRequest = LocationRequest()
+        locationRequest.interval = 10000
+        locationRequest.fastestInterval = 5000
+        locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+        return locationRequest
+    }
+
+    private fun startLocationUpdates() {
+        if (checkPermissions()) {
+            try {
+                fusedLocationProviderClient.requestLocationUpdates(
+                    locationRequest,
+                    locationCallback,
+                    null
+                )
+            } catch (e: SecurityException) {
+                Toast.makeText(this, "Location permission denied", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun stopLocationUpdates() {
+        fusedLocationProviderClient.removeLocationUpdates(locationCallback)
+    }
+
+    private fun checkPermissions(): Boolean {
+        return ActivityCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun requestLocationPermission() {
+        ActivityCompat.requestPermissions(
+            this,
+            arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ),
+            permissionRequestAccessLocation
+        )
+    }
+
+    private fun isLocationEnabled(): Boolean {
+        val locationManager: LocationManager =
+            getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (requestCode == permissionRequestAccessLocation) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (isLocationEnabled()) {
+                    Toast.makeText(
+                        applicationContext,
+                        "Location Permission Granted",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    startLocationUpdates()
+                } else {
+                    Toast.makeText(
+                        applicationContext,
+                        "Location is disabled",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            } else {
+                Toast.makeText(applicationContext, "Location Permission Denied", Toast.LENGTH_SHORT)
+                    .show()
+            }
+        }
+    }
+
+    private fun openLocationSettings() {
+        val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+        startActivity(intent)
+    }
+
+    private suspend fun postToken(
         geoWidth: Double,
         geoHeight: Double,
         className: String,
         groupNames: String
-    ): String {
-
+    ): String = withContext(Dispatchers.IO) {
         val url = URL("https://qr-codes.onrender.com/api/qr/")
-
-        val mapperAll = ObjectMapper()
-        val jacksonObj = mapperAll.createObjectNode()
-        jacksonObj.put("userId", userId)
-        jacksonObj.put("date", date.toString())
+        val mapper = ObjectMapper()
+        val jacksonObj = mapper.createObjectNode()
         jacksonObj.put("geoWidth", geoWidth)
         jacksonObj.put("geoHeight", geoHeight)
         jacksonObj.put("className", className)
@@ -97,131 +257,47 @@ class LecturerActivity : AppCompatActivity() {
 
         val request = Request.Builder()
             .url(url)
+            .header("Authorization", "Bearer $jwtToken")
             .post(body)
             .build()
 
         val response = client.newCall(request).execute()
 
-        return response.body!!.string()
+        return@withContext response.body?.string() ?: ""
     }
 
-    private fun getUserId(): Long {
-        val url = URL("https://qr-codes.onrender.com/api/user/me")
-        val request = Request.Builder()
-            .url(url)
-            .get()
-            .build()
-        val response = client.newCall(request).execute()
-        return response.body!!.string().toLong()
-    }
+    private suspend fun generateQrCode() {
+        val className: String = binding.lesson.text.toString()
+        val groupNames: String = binding.group.text.toString()
 
-    private fun getCurrentLocation() {
-        if (checkPermissions()) {
-            if (isLocationEnabled()) {
-                if (ActivityCompat.checkSelfPermission(
-                        this,
-                        Manifest.permission.ACCESS_FINE_LOCATION
-                    ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                        this,
-                        Manifest.permission.ACCESS_COARSE_LOCATION
-                    ) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    requestPermission()
-                    return
-                }
-                fusedLocationProviderClient.lastLocation.addOnCompleteListener(this) { task ->
-                    val location: Location? = task.result
-                    if (location == null) {
-                        Toast.makeText(this, "Null Received", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(this, "Get Success", Toast.LENGTH_SHORT).show()
-                        tvLatitude = location.latitude
-                        tvLongitude = location.longitude
-                    }
-                }
-            } else {
-                Toast.makeText(this, "Turn on location", Toast.LENGTH_SHORT).show()
-                val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-                startActivity(intent)
-            }
-        } else {
-            requestPermission()
-        }
-    }
+        val token: String = postToken(tvLatitude, tvLongitude, className, groupNames)
 
-    private fun isLocationEnabled(): Boolean {
-        val locationManager: LocationManager =
-            getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) || locationManager.isProviderEnabled(
-            LocationManager.NETWORK_PROVIDER
-        )
-    }
-
-    private fun requestPermission() {
-        ActivityCompat.requestPermissions(
-            this,
-            arrayOf(
-                android.Manifest.permission.ACCESS_COARSE_LOCATION,
-                android.Manifest.permission.ACCESS_FINE_LOCATION
-            ),
-            PERMISSION_REQUEST_ACCESS_LOCATION
-        )
-    }
-
-    companion object {
-        private const val PERMISSION_REQUEST_ACCESS_LOCATION = 100
-    }
-
-    private fun checkPermissions(): Boolean {
-
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                android.Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this,
-                android.Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            return true
-        }
-
-        return false
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-        if (requestCode == PERMISSION_REQUEST_ACCESS_LOCATION) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(applicationContext, "Granted", Toast.LENGTH_SHORT).show()
-                getCurrentLocation()
-            } else {
-                Toast.makeText(applicationContext, "Denied", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun generateQrCode() {
-        val date: LocalDateTime = LocalDateTime.now()
-        val userId: Long = getUserId()
-        val className: String = lessonInput?.text.toString()
-        val groupNames: String = groupInput?.text.toString()
-        val token: String = postToken(userId, date, tvLatitude, tvLongitude, className, groupNames)
-        val qrGenerator = QRGEncoder(token, null, QRGContents.Type.TEXT, 200)
+        val qrCodeWriter = QRCodeWriter()
+        val matrix: BitMatrix
 
         try {
-            val btnMap = qrGenerator.bitmap
-            runOnUiThread(Runnable {
-                img?.setImageBitmap(btnMap)
-            })
+            matrix = qrCodeWriter.encode(token, BarcodeFormat.QR_CODE, 2500, 2500)
         } catch (e: WriterException) {
             Log.v("LecturerActivity", e.toString())
+            return
+        }
+
+        val width = matrix.width
+        val height = matrix.height
+        val pixels = IntArray(width * height)
+
+        for (y in 0 until height) {
+            val offset = y * width
+            for (x in 0 until width) {
+                pixels[offset + x] = if (matrix.get(x, y)) Color.BLACK else Color.WHITE
+            }
+        }
+
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        bitmap.setPixels(pixels, 0, width, 0, 0, width, height)
+
+        withContext(Dispatchers.Main) {
+            binding.imageView.setImageBitmap(bitmap)
         }
     }
-
 }
